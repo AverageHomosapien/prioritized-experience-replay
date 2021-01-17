@@ -1,16 +1,21 @@
-#!/usr/bin/python
-# -*- encoding=utf-8 -*-
-# author: Ian
-# e-mail: stmayue@gmail.com
-# description: 
+#!/usr/bin/env python
+# original author: Ian
+# original e-mail: stmayue@gmail.com
+#___________________________________
+# current author: Calum (AverageHomosapien)
+# description: Unit tests for the binary heap class
 
-
+import unittest
 import binary_heap
 
+class TestBinaryHeap(unittest.TestCase):
+    def test_insert():
+        self.assertAlmostEqual()
 
 def test():
-    test_data = [(1, 0), (0.9, 1), (1.1, 2), (1.1, 3), (3.3, 4), (0, 5), (0.93, 6)]
-    BH = binary_heap.BinaryHeap(7)
+    test_data = [(1, 0), (0.9, 1), (1.1, 2), (1.1, 3), (3.3, 4),
+                (0, 5), (0.93, 6), (5, 7), (4, 8)]
+    BH = binary_heap.BinaryHeap(8)
 
     # empty queue
     print('empty queue')

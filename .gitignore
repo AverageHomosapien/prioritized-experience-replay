@@ -1,0 +1,2 @@
+# Gitignore the local pycache
+__pycache__/

@@ -1,9 +1,11 @@
-#!/usr/bin/python
-# -*- encoding=utf-8 -*-
-# author: Ian
-# e-mail: stmayue@gmail.com
-# description: 
+#!/usr/bin/env python
+# original author: Ian
+# original e-mail: stmayue@gmail.com
+#___________________________________
+# current author: Calum (AverageHomosapien)
+# description: Unit tests for the rank-based prioritized experience replay
 
+import unittest
 import rank_based
 
 
@@ -60,4 +62,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

@@ -1,8 +1,9 @@
-#!/usr/bin/python
-# -*- encoding=utf-8 -*-
-# author: Ian
-# e-mail: stmayue@gmail.com
-# description: 
+#!/usr/bin/env python
+# original author: Ian
+# original e-mail: stmayue@gmail.com
+#___________________________________
+# current author: Calum (AverageHomosapien)
+# description: Utility functions for the prioritized experience replay
 
 
 def list_to_dict(in_list):
@@ -19,4 +20,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

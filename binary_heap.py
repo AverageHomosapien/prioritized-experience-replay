@@ -1,28 +1,28 @@
-#!/usr/bin/python
-# -*- encoding=utf-8 -*-
-# author: Ian
-# e-mail: stmayue@gmail.com
-# description: 
+#!/usr/bin/env python
+# original author: Ian
+# original e-mail: stmayue@gmail.com
+#___________________________________
+# current author: Calum (AverageHomosapien)
+# description: Binary heap class used in the priority experience replay
 
 import sys
 import math
-
 import utility
 
 
 class BinaryHeap(object):
 
-    def __init__(self, priority_size=100, priority_init=None, replace=True):
+    def __init__(self, max_size=100, priority_init=None, replace=True):
         self.e2p = {}
         self.p2e = {}
         self.replace = replace
 
         if priority_init is None:
-            self.priority_queue = {}
-            self.size = 0
-            self.max_size = priority_size
+            self.priority_queue = {} # dictionary of priorities
+            self.size = 0 # current size
+            self.max_size = max_size # max size
         else:
-            # not yet test
+            # not yet tested
             self.priority_queue = priority_init
             self.size = len(self.priority_queue)
             self.max_size = None or self.size
@@ -66,7 +66,7 @@ class BinaryHeap(object):
         :return: bool
         """
         self.size += 1
-        
+
         if self.check_full() and not self.replace:
             sys.stderr.write('Error: no space left to add experience id %d with priority value %f\n' % (e_id, priority))
             return False
