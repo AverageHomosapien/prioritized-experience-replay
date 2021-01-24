@@ -49,8 +49,7 @@ class BinaryHeap(object):
     # get max priority (1 if no experiences)
         if len(self.queue) > 0:
             return -self.queue[0][0]
-        else:
-            return 1
+        return 1
 
     def get_priorities(self):
     # get all priority values
@@ -99,17 +98,17 @@ class BinaryHeap(object):
         v = heappop(self.queue)
         return (-v[0], v[1])
 
-    def pop_batch(self, batch_size):
+    def pop_batch(self):
         """
         pop replay experience batch
         param batch_size: (total experiences to return)
         return list of tuples: [(experience),..]
         """
-        if batch_size > len(self.queue):
+        if self.batch_size > len(self.queue):
             sys.stderr.write('Error: not enough values in batch, batch pop failed\n')
             return False
         batch = []
-        for i in range(batch_size):
+        for i in range(self.batch_size):
             v = heappop(self.queue)
             batch.append((-v[0], v[1]))
         return batch

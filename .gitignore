@@ -2,8 +2,7 @@
 __pycache__/
 
 # local ipython checkpoints
-/.ipynb_checkpoints
-/.ipynb_checkpoints/*
+.ipynb_checkpoints/
 
 # ipython testing notebook
 **.ipynb
