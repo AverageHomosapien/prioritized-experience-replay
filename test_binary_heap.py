@@ -7,77 +7,51 @@
 
 import unittest
 import binary_heap
+import heapq
+
+test_data = [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5),
+                (6, 6), (7, 7), (8, 8), (9, 9), (10, 10)]
+# Need to custom add the negative binary heap to compare since it's a binary tree
+neg_2 = [(-2, 2), (-1, 1)]
+neg_4 = [(-4, 4), (-2, 2), (-3, 3), (-1, 1)]
+neg_8 = [(-8, 8), (-5, 5), (-7, 7), (-4, 4), (-1, 1), (-6, 6), (-3, 3), (-2, 2)]
 
 class TestBinaryHeap(unittest.TestCase):
-    def test_insert():
-        self.assertAlmostEqual()
 
-def test():
-    test_data = [(1, 0), (0.9, 1), (1.1, 2), (1.1, 3), (3.3, 4),
-                (0, 5), (0.93, 6), (5, 7), (4, 8)]
-    BH = binary_heap.BinaryHeap(8)
+    def test_init(self):
+        BH = binary_heap.BinaryHeap(8, initial_heap=test_data)
+        self.assertEqual(BH.queue, neg_8)
 
-    # empty queue
-    print('empty queue')
-    print(BH)
-    print('max priority')
-    print(BH.get_max_priority())
+    def test_push_priority(self):
+        BH = binary_heap.BinaryHeap(max_len=2, initial_heap=test_data)
+        BH.push((3,3))
+        self.assertEqual(BH.queue, neg_2)
+        self.assertEqual(BH.get_max_priority(), 2)
 
-    # insert
-    print('\ntest insert')
-    for p, i in test_data:
-        BH.update(p, i)
-    print(BH)
-    print(BH.p2e)
-    print(BH.e2p)
+    def test_full(self):
+        BH = binary_heap.BinaryHeap(max_len=4, initial_heap=test_data)
+        self.assertTrue(BH.is_full())
+        self.assertFalse(BH.push((5,5)))
+        self.assertEqual(BH.get_size(), 4)
 
-    # update
-    print('\ntest update')
-    BH.update(9.9, 0)
-    print(BH)
-    print(BH.p2e)
-    print(BH.e2p)
+    def test_pop(self):
+        BH = binary_heap.BinaryHeap(max_len=10, initial_heap=test_data)
+        self.assertEqual(BH.pop(), (10, 10))
+        self.assertEqual(BH.pop(), (9, 9))
+        self.assertEqual(BH.pop(), (8, 8))
+        self.assertEqual(BH.pop(), (7, 7))
+        self.assertEqual(BH.pop(), (6, 6))
+        self.assertEqual(BH.pop_batch(5), [(5, 5), (4, 4), (3, 3), (2, 2), (1, 1)])
 
-    # get max priority
-    print('\nmax priority')
-    print(BH.get_max_priority())
+    def test_prio_id(self):
+        new_test_data = [(5, 4), (4, 3), (3, 2), (2, 1), (1, 0)]
+        BH = binary_heap.BinaryHeap(initial_heap=new_test_data)
+        self.assertEqual(BH.get_e_ids(), [4, 3, 2, 1, 0])
+        self.assertEqual(BH.get_priorities(), [5, 4, 3, 2, 1])
 
-    # re balance
-    print('\ntest re_balance')
-    BH.balance_tree()
-    print(BH)
-    print(BH.p2e)
-    print(BH.e2p)
-
-    # full insert
-    print('\ntest full insert')
-    BH.update(9.2, 7)
-    print(BH)
-
-    # pop
-    print('\ntest pop')
-    p, i = BH.pop()
-    print('pop out: ', p, i)
-    print(BH)
-    print(BH.p2e)
-    print(BH.e2p)
-
-    # get priority
-    print('\ntest get priority')
-    print(BH.get_priority())
-
-    # get e id
-    print('\ntest e id')
-    print(BH.get_e_id())
-
-    # p id to e id
-    print('\ntest p id to e id')
-    print(BH.priority_to_experience([2, 3, 6]))
-
-
-def main():
-    test()
-
-
-if __name__ == '__main__':
-    main()
+    def test_update(self):
+        BH = binary_heap.BinaryHeap(max_len = 4, initial_heap=test_data)
+        self.assertFalse(BH.update(8, 10))
+        self.assertTrue(BH.update(4, 5))
+        self.assertEqual(BH.pop(), (5, 4))
+        self.assertEqual(BH.queue, [(-3, 3), (-2, 2), (-1, 1)])

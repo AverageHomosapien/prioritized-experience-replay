@@ -1,221 +1,115 @@
 #!/usr/bin/env python
-# original author: Ian
-# original e-mail: stmayue@gmail.com
-#___________________________________
-# current author: Calum (AverageHomosapien)
+# author: Calum (AverageHomosapien)
 # description: Binary heap class used in the priority experience replay
+#       adapted from custom written binary heap class
 
 import sys
 import math
-import utility
+import heapq
+from heapq import heappush, heappop, heapify
 
+"""
+Binary heap class used in the priority experience implementation.
+Priorities are stored in form [(-priority, experience-id), (-priority, experience-id),..] in tuples.
+Negative priorities are stored since heapq is a min-binary heap implementation
+"""
 
 class BinaryHeap(object):
+    """
+    param max_len: integer of the max heap length (max priority queue length)
+    param priority_init: list of priority tuples
+    param replace: experiences automatically replaced
+    """
+    def __init__(self, max_len=100000, batch_size = 64, initial_heap=None):
+        self.max_len = max_len
+        self.batch_size = batch_size
 
-    def __init__(self, max_size=100, priority_init=None, replace=True):
-        self.e2p = {}
-        self.p2e = {}
-        self.replace = replace
-
-        if priority_init is None:
-            self.priority_queue = {} # dictionary of priorities
-            self.size = 0 # current size
-            self.max_size = max_size # max size
+        if not initial_heap:
+            self.queue = []
         else:
-            # not yet tested
-            self.priority_queue = priority_init
-            self.size = len(self.priority_queue)
-            self.max_size = None or self.size
-
-            experience_list = list(map(lambda x: self.priority_queue[x], self.priority_queue))
-            self.p2e = utility.list_to_dict(experience_list)
-            self.e2p = utility.exchange_key_value(self.p2e)
-            for i in range(int(self.size / 2), -1, -1):
-                self.down_heap(i)
+            if len(initial_heap) > self.max_len:
+                sys.stderr.write('Error: Can\'t make heap larger than max len. Creating smaller heap\n')
+                self.queue = []
+                for i in range(self.max_len):
+                    self.queue.append((-initial_heap[i][0], initial_heap[i][1]))
+            else:
+                self.queue = [(-i, j) for i, j in initial_heap]
+            heapify(self.queue)
 
     def __repr__(self):
-        """
-        :return: string of the priority queue, with level info
-        """
-        if self.size == 0:
-            return 'No element in heap!'
-        to_string = ''
-        level = -1
-        max_level = int(math.floor(math.log(self.size, 2)))
+        return "{}".format(self.queue)
 
-        for i in range(1, self.size + 1):
-            now_level = int(math.floor(math.log(i, 2)))
-            if level != now_level:
-                to_string = to_string + ('\n' if level != -1 else '') \
-                            + '    ' * (max_level - now_level)
-                level = now_level
+    def is_full(self):
+        return len(self.queue) >= self.max_len
 
-            to_string = to_string + '%.2f ' % self.priority_queue[i][1] + '    ' * (max_level - now_level)
-
-        return to_string
-
-    def check_full(self):
-        return self.size > self.max_size
-
-    def _insert(self, priority, e_id):
-        """
-        insert new experience id with priority
-        (maybe don't need get_max_priority and implement it in this function)
-        :param priority: priority value
-        :param e_id: experience id
-        :return: bool
-        """
-        self.size += 1
-
-        if self.check_full() and not self.replace:
-            sys.stderr.write('Error: no space left to add experience id %d with priority value %f\n' % (e_id, priority))
-            return False
-        else:
-            self.size = min(self.size, self.max_size)
-
-        self.priority_queue[self.size] = (priority, e_id)
-        self.p2e[self.size] = e_id
-        self.e2p[e_id] = self.size
-
-        self.up_heap(self.size)
-        return True
-
-    def update(self, priority, e_id):
-        """
-        update priority value according its experience id
-        :param priority: new priority value
-        :param e_id: experience id
-        :return: bool
-        """
-        if e_id in self.e2p:
-            p_id = self.e2p[e_id]
-            self.priority_queue[p_id] = (priority, e_id)
-            self.p2e[p_id] = e_id
-
-            self.down_heap(p_id)
-            self.up_heap(p_id)
-            return True
-        else:
-            # this e id is new, do insert
-            return self._insert(priority, e_id)
+    def get_size(self):
+        return len(self.queue)
 
     def get_max_priority(self):
-        """
-        get max priority, if no experience, return 1
-        :return: max priority if size > 0 else 1
-        """
-        if self.size > 0:
-            return self.priority_queue[1][0]
+    # get max priority (1 if no experiences)
+        if len(self.queue) > 0:
+            return -self.queue[0][0]
         else:
             return 1
 
+    def get_priorities(self):
+    # get all priority values
+        return list(map(lambda x: -x[0], self.queue))[0:len(self.queue)]
+
+    def get_e_ids(self):
+    # get all experience ids
+        return list(map(lambda x: x[1], self.queue))[0:len(self.queue)]
+
+    def update(self, e_id, new_priority):
+        """
+        update priority value based on e_id
+        param e_id: experience id
+        param new_priority: new priority value
+        return bool: worked?
+        """
+        pos = [i for i, v in enumerate(self.queue) if v[1] == e_id]
+        if pos == []:
+            return False
+        del(self.queue[pos[0]])
+        heappush(self.queue, (-new_priority, e_id))
+        heapify(self.queue)
+        return True
+
+    def push(self, experience):
+        """
+        push new experience
+        param experience: experience tuple
+        return bool: worked?
+        """
+        if self.is_full():
+            sys.stderr.write('Error: no space to add experience {} with priority {}\n'.format(experience[1], -experience[0]))
+            return False
+        print("{} is the experience".format(experience))
+        heappush(self.queue, (-experience[0], experience[1]))
+        return True
+
     def pop(self):
         """
-        pop out the max priority value with its experience id
-        :return: priority value & experience id
+        pop max priority and experience id
+        return tuple: (priority & e_id)
         """
-        if self.size == 0:
+        if len(self.queue) == 0:
             sys.stderr.write('Error: no value in heap, pop failed\n')
-            return False, False
+            return False
+        v = heappop(self.queue)
+        return (-v[0], v[1])
 
-        pop_priority, pop_e_id = self.priority_queue[1]
-        self.e2p[pop_e_id] = -1
-        # replace first
-        last_priority, last_e_id = self.priority_queue[self.size]
-        self.priority_queue[1] = (last_priority, last_e_id)
-        self.size -= 1
-        self.e2p[last_e_id] = 1
-        self.p2e[1] = last_e_id
-
-        self.down_heap(1)
-
-        return pop_priority, pop_e_id
-
-    def up_heap(self, i):
+    def pop_batch(self, batch_size):
         """
-        upward balance
-        :param i: tree node i
-        :return: None
+        pop replay experience batch
+        param batch_size: (total experiences to return)
+        return list of tuples: [(experience),..]
         """
-        if i > 1:
-            parent = math.floor(i / 2)
-            if self.priority_queue[parent][0] < self.priority_queue[i][0]:
-                tmp = self.priority_queue[i]
-                self.priority_queue[i] = self.priority_queue[parent]
-                self.priority_queue[parent] = tmp
-                # change e2p & p2e
-                self.e2p[self.priority_queue[i][1]] = i
-                self.e2p[self.priority_queue[parent][1]] = parent
-                self.p2e[i] = self.priority_queue[i][1]
-                self.p2e[parent] = self.priority_queue[parent][1]
-                # up heap parent
-                self.up_heap(parent)
-
-    def down_heap(self, i):
-        """
-        downward balance
-        :param i: tree node i
-        :return: None
-        """
-        if i < self.size:
-            greatest = i
-            left, right = i * 2, i * 2 + 1
-            if left < self.size and self.priority_queue[left][0] > self.priority_queue[greatest][0]:
-                greatest = left
-            if right < self.size and self.priority_queue[right][0] > self.priority_queue[greatest][0]:
-                greatest = right
-
-            if greatest != i:
-                tmp = self.priority_queue[i]
-                self.priority_queue[i] = self.priority_queue[greatest]
-                self.priority_queue[greatest] = tmp
-                # change e2p & p2e
-                self.e2p[self.priority_queue[i][1]] = i
-                self.e2p[self.priority_queue[greatest][1]] = greatest
-                self.p2e[i] = self.priority_queue[i][1]
-                self.p2e[greatest] = self.priority_queue[greatest][1]
-                # down heap greatest
-                self.down_heap(greatest)
-
-    def get_priority(self):
-        """
-        get all priority value
-        :return: list of priority
-        """
-        return list(map(lambda x: x[0], self.priority_queue.values()))[0:self.size]
-
-    def get_e_id(self):
-        """
-        get all experience id in priority queue
-        :return: list of experience ids order by their priority
-        """
-        return list(map(lambda x: x[1], self.priority_queue.values()))[0:self.size]
-
-    def balance_tree(self):
-        """
-        rebalance priority queue
-        :return: None
-        """
-        sort_array = sorted(self.priority_queue.values(), key=lambda x: x[0], reverse=True)
-        # reconstruct priority_queue
-        self.priority_queue.clear()
-        self.p2e.clear()
-        self.e2p.clear()
-        cnt = 1
-        while cnt <= self.size:
-            priority, e_id = sort_array[cnt - 1]
-            self.priority_queue[cnt] = (priority, e_id)
-            self.p2e[cnt] = e_id
-            self.e2p[e_id] = cnt
-            cnt += 1
-        # sort the heap
-        for i in range(int(math.floor(self.size / 2)), 1, -1):
-            self.down_heap(i)
-
-    def priority_to_experience(self, priority_ids):
-        """
-        retrieve experience ids by priority ids
-        :param priority_ids: list of priority id
-        :return: list of experience id
-        """
-        return [self.p2e[i] for i in priority_ids]
+        if batch_size > len(self.queue):
+            sys.stderr.write('Error: not enough values in batch, batch pop failed\n')
+            return False
+        batch = []
+        for i in range(batch_size):
+            v = heappop(self.queue)
+            batch.append((-v[0], v[1]))
+        return batch
