@@ -9,7 +9,7 @@ import math
 import random
 import numpy as np
 
-import new_binary_heap
+import binary_heap
 
 
 class Experience(object):
@@ -79,17 +79,45 @@ class Experience(object):
 
         return res
 
+    def fix_index(self):
+        """
+        get next insert index
+        :return: index, int
+        """
+        if self.record_size <= self.size:
+            self.record_size += 1
+        if self.index % self.size == 0:
+            self.isFull = True if len(self._experience) == self.size else False
+            if self.replace_flag:
+                self.index = 1
+                return self.index
+            else:
+                sys.stderr.write('Experience replay buff is full and replace is set to FALSE!\n')
+                return -1
+        else:
+            self.index += 1
+            return self.index
+
     def store(self, experience):
         """
-        store experience in the tuple - form (s1, a, r, s2, t)
-        :param experience: tuple
-        :return: bool - inserted
+        store experience, suggest that experience is a tuple of (s1, a, r, s2, t)
+        so each experience is valid
+        :param experience: maybe a tuple, or list
+        :return: bool, indicate insert status
         """
-        if not self.priority_queue.check_full():
+        insert_index = self.fix_index()
+        if insert_index > 0:
+            if insert_index in self._experience:
+                del self._experience[insert_index]
+            self._experience[insert_index] = experience
+            # add to priority queue
+            priority = self.priority_queue.get_max_priority()
+            #self.priority_queue.update(priority, insert_index)
+            self.priority_queue.push(experience)
+            return True
+        else:
             sys.stderr.write('Insert failed\n')
             return False
-        self.priority_queue.push(experience)
-        return True
 
     def retrieve(self, indices):
         """

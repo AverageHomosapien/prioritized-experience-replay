@@ -8,34 +8,31 @@ import sys
 import math
 import random
 import numpy as np
-
 import binary_heap
 
 
 class Experience(object):
 
-    def __init__(self, conf):
-        self.size = conf['size']
-        self.replace_flag = conf['replace_old'] if 'replace_old' in conf else True
-        self.priority_size = conf['priority_size'] if 'priority_size' in conf else self.size
-
-        self.alpha = conf['alpha'] if 'alpha' in conf else 0.7
-        self.beta_zero = conf['beta_zero'] if 'beta_zero' in conf else 0.5
-        self.batch_size = conf['batch_size'] if 'batch_size' in conf else 32
-        self.learn_start = conf['learn_start'] if 'learn_start' in conf else 1000
-        self.total_steps = conf['steps'] if 'steps' in conf else 100000
-        # partition number N, split total size to N part
-        self.partition_num = conf['partition_num'] if 'partition_num' in conf else 100
+    def __init__(self, max_size=100000, alpha=0.7, beta_zero=0.5, batch_size=32,
+                learn_start=1000, total_steps = 100000, partition_num = 100):
+        self.max_size = max_size
+        self.alpha = alpha
+        self.beta_zero = beta_zero
+        self.batch_size = batch_size
+        self.learn_start = learn_start
+        self.total_steps = total_steps
+        self.partition_num = partition_num
 
         self.index = 0
         self.record_size = 0
         self.isFull = False
+        self.exp_queue = {}
 
-        self._experience = {}
-        self.priority_queue = binary_heap.BinaryHeap(self.priority_size)
+        self.queue = binary_heap.BinaryHeap(max_len = self.max_size,
+                                            batch_size = self.batch_size)
         self.distributions = self.build_distributions()
-
         self.beta_grad = (1 - self.beta_zero) / float(self.total_steps - self.learn_start)
+
 
     def build_distributions(self):
         """
@@ -47,10 +44,10 @@ class Experience(object):
         n_partitions = self.partition_num
         partition_num = 1
         # each part size
-        partition_size = int(math.floor(self.size / n_partitions))
+        partition_size = int(math.floor(self.max_size / n_partitions))
 
-        for n in range(partition_size, self.size + 1, partition_size):
-            if self.learn_start <= n <= self.priority_size:
+        for n in range(partition_size, self.max_size + 1, partition_size):
+            if self.learn_start <= n <= self.max_size:
                 distribution = {}
                 # P(i) = (rank i) ^ (-alpha) / sum ((rank i) ^ (-alpha))
                 pdf = list(
@@ -79,44 +76,17 @@ class Experience(object):
 
         return res
 
-    def fix_index(self):
-        """
-        get next insert index
-        :return: index, int
-        """
-        if self.record_size <= self.size:
-            self.record_size += 1
-        if self.index % self.size == 0:
-            self.isFull = True if len(self._experience) == self.size else False
-            if self.replace_flag:
-                self.index = 1
-                return self.index
-            else:
-                sys.stderr.write('Experience replay buff is full and replace is set to FALSE!\n')
-                return -1
-        else:
-            self.index += 1
-            return self.index
-
     def store(self, experience):
         """
-        store experience, suggest that experience is a tuple of (s1, a, r, s2, t)
-        so each experience is valid
-        :param experience: maybe a tuple, or list
-        :return: bool, indicate insert status
+        store experience in the tuple - form (s1, a, r, s2, t)
+        :param experience: tuple
+        :return: bool - inserted
         """
-        insert_index = self.fix_index()
-        if insert_index > 0:
-            if insert_index in self._experience:
-                del self._experience[insert_index]
-            self._experience[insert_index] = experience
-            # add to priority queue
-            priority = self.priority_queue.get_max_priority()
-            self.priority_queue.update(priority, insert_index)
-            return True
-        else:
+        if self.queue.is_full():
             sys.stderr.write('Insert failed\n')
             return False
+        self.queue.push(experience)
+        return True
 
     def retrieve(self, indices):
         """
@@ -126,13 +96,6 @@ class Experience(object):
         """
         return [self._experience[v] for v in indices]
 
-    def rebalance(self):
-        """
-        rebalance priority queue
-        :return: None
-        """
-        self.priority_queue.balance_tree()
-
     def update_priority(self, indices, delta):
         """
         update priority according indices and deltas
@@ -141,7 +104,7 @@ class Experience(object):
         :return: None
         """
         for i in range(0, len(indices)):
-            self.priority_queue.update(math.fabs(delta[i]), indices[i])
+            self.queue.update(math.fabs(delta[i]), indices[i])
 
     def sample(self, global_step):
         """
@@ -155,9 +118,9 @@ class Experience(object):
             sys.stderr.write('Record size less than learn start! Sample failed\n')
             return False, False, False
 
-        dist_index = math.floor(self.record_size / self.size * self.partition_num)
+        dist_index = math.floor(self.record_size / self.max_size * self.partition_num)
         # issue 1 by @camigord
-        partition_size = math.floor(self.size / self.partition_num)
+        partition_size = math.floor(self.max_size / self.partition_num)
         partition_max = dist_index * partition_size
         distribution = self.distributions[dist_index]
         rank_list = []
@@ -177,7 +140,7 @@ class Experience(object):
         w = np.divide(w, w_max)
         # rank list is priority id
         # convert to experience id
-        rank_e_id = self.priority_queue.priority_to_experience(rank_list)
+        rank_e_id = self.queue.priority_to_experience(rank_list)
         # get experience id according rank_e_id
         experience = self.retrieve(rank_e_id)
         return experience, w, rank_e_id
